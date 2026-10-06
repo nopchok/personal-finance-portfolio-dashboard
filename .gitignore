@@ -1,0 +1,27 @@
+# SQLite Databases (Sensitive personal financial data)
+finance_data.db
+*.db
+*.sqlite
+*.sqlite3
+
+# JSON Backup files
+*.json
+!mcp_config.json
+
+# Python cache & environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+ENV/
+
+# Streamlit secrets & configs
+.streamlit/secrets.toml
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
