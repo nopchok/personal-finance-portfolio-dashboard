@@ -21,7 +21,7 @@ def apply_tailwind_light_theme():
 
     /* Main Container Padding */
     .block-container {
-        padding-top: 1.75rem;
+        padding-top: 3.5rem;
         padding-bottom: 3rem;
         padding-left: 2rem;
         padding-right: 2rem;
