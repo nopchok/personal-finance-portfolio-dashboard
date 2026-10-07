@@ -8,7 +8,7 @@ import pandas as pd
 from datetime import datetime
 from database import (
     get_all_snapshots, delete_snapshot, save_snapshot,
-    export_all_data, import_all_data, seed_sample_data_if_empty, get_connection,
+    export_all_data, import_all_data, seed_sample_data_if_empty, reset_all_data,
     get_categories, add_category, delete_category, reset_default_categories
 )
 from components.charts import create_historical_trend_chart
@@ -155,32 +155,15 @@ def render_settings_data():
         c_reset1, c_reset2 = st.columns(2)
         with c_reset1:
             if st.button("🔄 โหลดข้อมูลตัวอย่างใหม่ (Seed Sample Data)", use_container_width=True):
-                conn = get_connection()
-                c = conn.cursor()
-                c.execute("DELETE FROM assets")
-                c.execute("DELETE FROM liabilities")
-                c.execute("DELETE FROM income_items")
-                c.execute("DELETE FROM expense_items")
-                c.execute("DELETE FROM monthly_snapshots")
-                c.execute("DELETE FROM custom_categories")
-                conn.commit()
-                conn.close()
+                reset_all_data()
+                reset_default_categories()
                 seed_sample_data_if_empty()
                 st.toast("โหลดข้อมูลตัวอย่างสำเร็จ!", icon="🌱")
                 st.rerun()
 
         with c_reset2:
             if st.button("🗑️ ล้างข้อมูลทั้งหมด (Clear All Data)", use_container_width=True):
-                conn = get_connection()
-                c = conn.cursor()
-                c.execute("DELETE FROM assets")
-                c.execute("DELETE FROM liabilities")
-                c.execute("DELETE FROM income_items")
-                c.execute("DELETE FROM expense_items")
-                c.execute("DELETE FROM monthly_snapshots")
-                c.execute("DELETE FROM custom_categories")
-                conn.commit()
-                conn.close()
+                reset_all_data()
                 reset_default_categories()
                 st.toast("ล้างข้อมูลทั้งหมดเรียบร้อยแล้ว", icon="🧹")
                 st.rerun()

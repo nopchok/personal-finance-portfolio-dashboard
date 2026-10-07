@@ -1,6 +1,6 @@
 """
 Minimal Light Personal Finance & Portfolio Dashboard
-Built with Streamlit, Tailwind Aesthetics, Plotly, SQLite
+Built with Streamlit, Tailwind Aesthetics, Plotly, Supabase
 """
 
 import streamlit as st
@@ -9,11 +9,12 @@ from datetime import datetime
 
 # Initialize Database
 from database import (
-    init_db, seed_sample_data_if_empty, 
+    init_db, clear_db_cache,
     get_monthly_profile, get_all_assets, get_all_liabilities, 
     get_all_income_items, get_all_expense_items
 )
 from components.styles import apply_tailwind_light_theme, render_hero_banner
+from components.overview import render_overview
 from components.monthly_planner import render_monthly_planner
 from components.portfolio import render_portfolio
 from components.networth_fire import render_networth_fire
@@ -27,9 +28,8 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Initialize DB & Seed Data
+# Initialize DB connection check
 init_db()
-seed_sample_data_if_empty()
 
 # Apply Minimal Light / Tailwind Theme CSS
 apply_tailwind_light_theme()
@@ -79,18 +79,28 @@ def main():
 
         st.markdown("---")
 
+        MENU_OPTIONS = [
+            "🏠 สรุปภาพรวม & ตรวจสุขภาพการเงิน (Overview & Health Check)",
+            "📊 ประมาณการรายเดือน (Monthly Planner)",
+            "📈 พอร์ตการลงทุน (Portfolio)",
+            "🏛️ ความมั่งคั่ง & อิสรภาพการเงิน (Net Worth & FIRE)",
+            "📜 ประวัติ & สำรองข้อมูล (History & Backup)"
+        ]
+
+        if "nav_menu" not in st.session_state or st.session_state["nav_menu"] not in MENU_OPTIONS:
+            st.session_state["nav_menu"] = MENU_OPTIONS[0]
+
         menu = st.radio(
             "เมนูหลัก (Navigation)",
-            [
-                "📊 ภาพรวมรายเดือน (Monthly Estimate)",
-                "📈 พอร์ตการลงทุน (Portfolio)",
-                "🏛️ ความมั่งคั่ง & อิสรภาพการเงิน (Net Worth & FIRE)",
-                "📜 ประวัติ & สำรองข้อมูล (History & Backup)"
-            ],
-            index=0
+            MENU_OPTIONS,
+            key="nav_menu"
         )
 
         st.markdown("---")
+        if st.button("🔄 ซิงค์ข้อมูลล่าสุดจาก Cloud", use_container_width=True, key="btn_sidebar_sync"):
+            clear_db_cache()
+            st.toast("ซิงค์ข้อมูลล่าสุดจาก Supabase สำเร็จ!", icon="☁️")
+            st.rerun()
         
         # Sidebar mini-summary card
         st.markdown("""
@@ -112,7 +122,9 @@ def main():
     )
 
     # Main Page Routing
-    if "📊 ภาพรวมรายเดือน" in menu:
+    if "🏠 สรุปภาพรวม" in menu:
+        render_overview()
+    elif "📊 ประมาณการรายเดือน" in menu:
         render_monthly_planner()
     elif "📈 พอร์ตการลงทุน" in menu:
         render_portfolio()

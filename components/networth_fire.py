@@ -7,8 +7,8 @@ import streamlit as st
 import pandas as pd
 from database import (
     get_all_assets, get_all_liabilities, add_liability,
-    update_liability, delete_liability, get_monthly_profile, update_monthly_profile,
-    get_categories, get_connection, safe_float, safe_str
+    update_liability, delete_liability, save_liabilities_batch, get_monthly_profile, update_monthly_profile,
+    get_categories, safe_float, safe_str
 )
 from components.styles import render_metric_card
 from components.charts import create_fire_projection_chart
@@ -89,7 +89,7 @@ def render_networth_fire():
         fc1, fc2, fc3 = st.columns(3)
         with fc1:
             current_age = st.number_input("อายุปัจจุบัน", min_value=15, max_value=80, value=int(profile.get("fire_current_age", 29)), step=1)
-            target_retire_age = st.number_input("อายุที่ต้องการมีอิสรภาพการเงิน/เกษียณ", min_value=current_age + 1, max_value=90, value=int(profile.get("fire_target_age", 50)), step=1)
+            target_retire_age = st.number_input("อายุที่ต้องการเกษียณ/อิสรภาพการเงิน", min_value=current_age + 1, max_value=90, value=int(profile.get("fire_target_age", 50)), step=1)
         with fc2:
             target_monthly_spend = st.number_input(
                 "ค่าใช้จ่ายที่ต้องการใช้ต่อเดือนหลังเกษียณ (บาท)",
@@ -99,21 +99,10 @@ def render_networth_fire():
                 format="%.0f"
             )
             years_to_retire = max(1, target_retire_age - current_age)
-            inflation_rate = st.number_input("อัตราเงินเฟ้อคาดการณ์ (% ต่อปี)", min_value=0.0, max_value=15.0, value=float(profile.get("fire_inflation_rate", 2.5)), step=0.5)
-        with fc3:
             expected_roi = st.number_input("ผลตอบแทนพอร์ตคาดหวังเฉลี่ย (% ต่อปี)", min_value=1.0, max_value=25.0, value=float(profile.get("fire_expected_return", 7.0)), step=0.5)
-            
-            saved_dca = float(profile.get("fire_monthly_dca", 0))
-            default_dca_val = saved_dca if saved_dca > 0 else (float(total_monthly_dca) if total_monthly_dca > 0 else float(profile.get("salary", 50000) * 0.2))
-            
-            monthly_invest_input = st.number_input(
-                "เงินลงทุนเพิ่มต่อเดือน (DCA รวม)", 
-                min_value=0.0, 
-                value=default_dca_val, 
-                step=1000.0, 
-                format="%.0f",
-                key="fire_dca_input"
-            )
+        with fc3:
+            inflation_rate = st.number_input("อัตราเงินเฟ้อคาดการณ์ (% ต่อปี)", min_value=0.0, max_value=15.0, value=float(profile.get("fire_inflation_rate", 2.5)), step=0.5)
+            st.caption(f"⏱️ ระยะเวลาสะสมความมั่งคั่ง: **{years_to_retire} ปี**")
 
         if st.button("💾 อัปเดตสมมติฐาน FIRE ลงโปรไฟล์", type="secondary"):
             update_data = {
@@ -128,7 +117,7 @@ def render_networth_fire():
                 "fire_inflation_rate": inflation_rate,
                 "fire_current_age": current_age,
                 "fire_target_age": target_retire_age,
-                "fire_monthly_dca": monthly_invest_input
+                "fire_monthly_dca": 0
             }
             update_monthly_profile(update_data)
             st.toast("บันทึกสมมติฐาน FIRE เรียบร้อยแล้ว", icon="🎯")
@@ -157,9 +146,9 @@ def render_networth_fire():
     r_monthly = (expected_roi / 100) / 12
     n_months = years_to_retire * 12
     if r_monthly > 0:
-        projected_portfolio = fire_base_amount * ((1 + r_monthly) ** n_months) + monthly_invest_input * (((1 + r_monthly) ** n_months - 1) / r_monthly)
+        projected_portfolio = fire_base_amount * ((1 + r_monthly) ** n_months)
     else:
-        projected_portfolio = fire_base_amount + (monthly_invest_input * n_months)
+        projected_portfolio = fire_base_amount
 
     fire_progress_today = min(1.0, (fire_base_amount / fire_target_today)) if fire_target_today > 0 else 0
     progress_at_target_age = min(1.0, (projected_portfolio / fire_target_future)) if fire_target_future > 0 else 0
@@ -187,7 +176,7 @@ def render_networth_fire():
         render_metric_card(
             title=f"คาดการณ์พอร์ตเมื่ออายุ {target_retire_age} ปี",
             value=f"฿{projected_portfolio:,.0f}",
-            subtext=f"DCA ฿{monthly_invest_input:,.0f}/ด. ผลตอบแทน {expected_roi}%",
+            subtext=f"เติบโตทบต้นเฉลี่ย {expected_roi}% ต่อปี",
             badge_text=f"คิดเป็น {progress_at_target_age*100:.0f}% ของเป้าหมาย",
             badge_type=proj_badge
         )
@@ -200,7 +189,7 @@ def render_networth_fire():
     st.plotly_chart(
         create_fire_projection_chart(
             current_nw=fire_base_amount,
-            monthly_invest=monthly_invest_input,
+            monthly_invest=0,
             years=max(15, years_to_retire + 5),
             expected_return=expected_roi,
             fire_target=fire_target_today
@@ -287,52 +276,7 @@ def render_networth_fire():
         )
 
         if st.button("💾 บันทึกการเปลี่ยนแปลงหนี้สินทั้งหมด", type="primary", use_container_width=True):
-            from database import get_connection, safe_float, safe_str
-            conn = get_connection()
-            c = conn.cursor()
-            
-            saved_ids = []
-            for _, r in edited_debts.iterrows():
-                debt_name = safe_str(r.get("name"))
-                if not debt_name:
-                    continue
-                row_id = safe_float(r.get("id"), 0)
-                if row_id > 0:
-                    c.execute("""
-                    INSERT OR REPLACE INTO liabilities (id, name, category, total_balance, monthly_payment, interest_rate, notes, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                    """, (
-                        int(row_id),
-                        debt_name,
-                        safe_str(r.get("category"), LIABILITY_CATEGORIES[0] if LIABILITY_CATEGORIES else "อื่น ๆ"),
-                        safe_float(r.get("total_balance"), 0.0),
-                        safe_float(r.get("monthly_payment"), 0.0),
-                        safe_float(r.get("interest_rate"), 0.0),
-                        safe_str(r.get("notes"), "")
-                    ))
-                    saved_ids.append(int(row_id))
-                else:
-                    c.execute("""
-                    INSERT INTO liabilities (name, category, total_balance, monthly_payment, interest_rate, notes)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                    """, (
-                        debt_name,
-                        safe_str(r.get("category"), LIABILITY_CATEGORIES[0] if LIABILITY_CATEGORIES else "อื่น ๆ"),
-                        safe_float(r.get("total_balance"), 0.0),
-                        safe_float(r.get("monthly_payment"), 0.0),
-                        safe_float(r.get("interest_rate"), 0.0),
-                        safe_str(r.get("notes"), "")
-                    ))
-                    saved_ids.append(c.lastrowid)
-
-            if saved_ids:
-                placeholders = ','.join(['?'] * len(saved_ids))
-                c.execute(f"DELETE FROM liabilities WHERE id NOT IN ({placeholders})", saved_ids)
-            else:
-                c.execute("DELETE FROM liabilities")
-
-            conn.commit()
-            conn.close()
+            save_liabilities_batch(edited_debts.to_dict("records"))
             st.toast("บันทึกข้อมูลหนี้สินเรียบร้อยแล้ว!", icon="💾")
             st.rerun()
 

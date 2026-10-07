@@ -9,7 +9,7 @@ import streamlit as st
 import pandas as pd
 from database import (
     get_all_assets, add_asset, update_asset, delete_asset, get_categories,
-    get_connection, safe_float, safe_str
+    save_assets_batch, safe_float, safe_str
 )
 from components.styles import render_metric_card
 from components.charts import create_allocation_donut, create_target_vs_actual_chart
@@ -230,58 +230,7 @@ def render_portfolio():
             )
 
             if st.button("💾 บันทึกการเปลี่ยนแปลงพอร์ตลงทุนทั้งหมด", type="primary", use_container_width=True):
-                conn = get_connection()
-                c = conn.cursor()
-                
-                saved_liq_ids = []
-                for _, r in edited_liq.iterrows():
-                    asset_name = safe_str(r.get("name"))
-                    if not asset_name:
-                        continue
-                    row_id = safe_float(r.get("id"), 0)
-                    if row_id > 0:
-                        c.execute("""
-                        INSERT OR REPLACE INTO assets (id, name, category, current_value, cost_basis, target_allocation, monthly_dca, expected_roi, platform_or_broker, notes, asset_type, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'investment', CURRENT_TIMESTAMP)
-                        """, (
-                            int(row_id),
-                            asset_name,
-                            safe_str(r.get("category"), INVESTMENT_CATS[0] if INVESTMENT_CATS else "กองทุนรวม (Mutual Funds)"),
-                            safe_float(r.get("current_value"), 0.0),
-                            safe_float(r.get("cost_basis"), 0.0),
-                            safe_float(r.get("target_allocation"), 0.0),
-                            safe_float(r.get("monthly_dca"), 0.0),
-                            safe_float(r.get("expected_roi"), 7.0),
-                            safe_str(r.get("platform_or_broker"), ""),
-                            safe_str(r.get("notes"), "")
-                        ))
-                        saved_liq_ids.append(int(row_id))
-                    else:
-                        c.execute("""
-                        INSERT INTO assets (name, category, current_value, cost_basis, target_allocation, monthly_dca, expected_roi, platform_or_broker, notes, asset_type)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'investment')
-                        """, (
-                            asset_name,
-                            safe_str(r.get("category"), INVESTMENT_CATS[0] if INVESTMENT_CATS else "กองทุนรวม (Mutual Funds)"),
-                            safe_float(r.get("current_value"), 0.0),
-                            safe_float(r.get("cost_basis"), 0.0),
-                            safe_float(r.get("target_allocation"), 0.0),
-                            safe_float(r.get("monthly_dca"), 0.0),
-                            safe_float(r.get("expected_roi"), 7.0),
-                            safe_str(r.get("platform_or_broker"), ""),
-                            safe_str(r.get("notes"), "")
-                        ))
-                        saved_liq_ids.append(c.lastrowid)
-                
-                # Delete removed liquid assets only
-                current_liq_ids = [a["id"] for a in liquid_assets]
-                to_delete = [lid for lid in current_liq_ids if lid not in saved_liq_ids]
-                if to_delete:
-                    del_ph = ','.join(['?'] * len(to_delete))
-                    c.execute(f"DELETE FROM assets WHERE id IN ({del_ph})", to_delete)
-
-                conn.commit()
-                conn.close()
+                save_assets_batch(edited_liq.to_dict("records"), asset_type="investment")
                 st.toast("บันทึกข้อมูลพอร์ตลงทุนเรียบร้อยแล้ว!", icon="💾")
                 st.rerun()
 
@@ -479,52 +428,7 @@ def render_portfolio():
             )
 
             if st.button("💾 บันทึกการเปลี่ยนแปลงสินทรัพย์ถาวรทั้งหมด", type="primary", use_container_width=True):
-                conn = get_connection()
-                c = conn.cursor()
-                
-                saved_fix_ids = []
-                for _, r in edited_fix.iterrows():
-                    asset_name = safe_str(r.get("name"))
-                    if not asset_name:
-                        continue
-                    row_id = safe_float(r.get("id"), 0)
-                    if row_id > 0:
-                        c.execute("""
-                        INSERT OR REPLACE INTO assets (id, name, category, current_value, cost_basis, target_allocation, monthly_dca, expected_roi, platform_or_broker, notes, asset_type, updated_at)
-                        VALUES (?, ?, ?, ?, ?, 0, 0, 0, ?, ?, 'fixed_asset', CURRENT_TIMESTAMP)
-                        """, (
-                            int(row_id),
-                            asset_name,
-                            safe_str(r.get("category"), FIXED_ASSET_CATS[0] if FIXED_ASSET_CATS else "🏠 บ้านเดี่ยว / ทาวน์โฮม (House)"),
-                            safe_float(r.get("current_value"), 0.0),
-                            safe_float(r.get("cost_basis"), 0.0),
-                            safe_str(r.get("platform_or_broker"), ""),
-                            safe_str(r.get("notes"), "")
-                        ))
-                        saved_fix_ids.append(int(row_id))
-                    else:
-                        c.execute("""
-                        INSERT INTO assets (name, category, current_value, cost_basis, target_allocation, monthly_dca, expected_roi, platform_or_broker, notes, asset_type)
-                        VALUES (?, ?, ?, ?, 0, 0, 0, ?, ?, 'fixed_asset')
-                        """, (
-                            asset_name,
-                            safe_str(r.get("category"), FIXED_ASSET_CATS[0] if FIXED_ASSET_CATS else "🏠 บ้านเดี่ยว / ทาวน์โฮม (House)"),
-                            safe_float(r.get("current_value"), 0.0),
-                            safe_float(r.get("cost_basis"), 0.0),
-                            safe_str(r.get("platform_or_broker"), ""),
-                            safe_str(r.get("notes"), "")
-                        ))
-                        saved_fix_ids.append(c.lastrowid)
-                
-                # Delete removed fixed assets only
-                current_fix_ids = [a["id"] for a in fixed_assets]
-                to_delete = [fid for fid in current_fix_ids if fid not in saved_fix_ids]
-                if to_delete:
-                    del_ph = ','.join(['?'] * len(to_delete))
-                    c.execute(f"DELETE FROM assets WHERE id IN ({del_ph})", to_delete)
-
-                conn.commit()
-                conn.close()
+                save_assets_batch(edited_fix.to_dict("records"), asset_type="fixed_asset")
                 st.toast("บันทึกข้อมูลสินทรัพย์ถาวรเรียบร้อยแล้ว!", icon="💾")
                 st.rerun()
 

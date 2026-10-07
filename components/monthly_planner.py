@@ -9,9 +9,9 @@ from datetime import datetime
 from database import (
     get_monthly_profile, update_monthly_profile, 
     get_all_assets, get_all_liabilities, save_snapshot,
-    get_all_income_items, add_income_item, update_income_item, delete_income_item,
-    get_all_expense_items, add_expense_item, update_expense_item, delete_expense_item,
-    get_categories, get_connection, safe_float, safe_str
+    get_all_income_items, add_income_item, update_income_item, delete_income_item, save_income_items_batch,
+    get_all_expense_items, add_expense_item, update_expense_item, delete_expense_item, save_expense_items_batch,
+    get_categories, safe_float, safe_str
 )
 from components.styles import render_metric_card
 from components.charts import (
@@ -246,49 +246,7 @@ def render_monthly_planner():
         )
 
         if st.button("💾 บันทึกการเปลี่ยนแปลงในตารางรายได้ทั้งหมด", type="primary", use_container_width=True):
-            conn = get_connection()
-            c = conn.cursor()
-            
-            saved_ids = []
-            for _, r in edited_inc_data.iterrows():
-                inc_name = safe_str(r.get("name"))
-                if not inc_name:
-                    continue
-                row_id = safe_float(r.get("id"), 0)
-                if row_id > 0:
-                    c.execute("""
-                    INSERT OR REPLACE INTO income_items (id, name, category, income_type, estimated_amount, notes, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                    """, (
-                        int(row_id),
-                        inc_name,
-                        safe_str(r.get("category"), INCOME_CATEGORIES[0] if INCOME_CATEGORIES else "💼 รายได้หลักประจำ (Salary/Job)"),
-                        safe_str(r.get("income_type"), INCOME_TYPES[0]),
-                        safe_float(r.get("estimated_amount"), 0.0),
-                        safe_str(r.get("notes"), "")
-                    ))
-                    saved_ids.append(int(row_id))
-                else:
-                    c.execute("""
-                    INSERT INTO income_items (name, category, income_type, estimated_amount, notes)
-                    VALUES (?, ?, ?, ?, ?)
-                    """, (
-                        inc_name,
-                        safe_str(r.get("category"), INCOME_CATEGORIES[0] if INCOME_CATEGORIES else "💼 รายได้หลักประจำ (Salary/Job)"),
-                        safe_str(r.get("income_type"), INCOME_TYPES[0]),
-                        safe_float(r.get("estimated_amount"), 0.0),
-                        safe_str(r.get("notes"), "")
-                    ))
-                    saved_ids.append(c.lastrowid)
-
-            if saved_ids:
-                placeholders = ','.join(['?'] * len(saved_ids))
-                c.execute(f"DELETE FROM income_items WHERE id NOT IN ({placeholders})", saved_ids)
-            else:
-                c.execute("DELETE FROM income_items")
-
-            conn.commit()
-            conn.close()
+            save_income_items_batch(edited_inc_data.to_dict("records"))
             st.toast("บันทึกรายการรายได้เรียบร้อยแล้ว!", icon="💾")
             st.rerun()
 
@@ -440,49 +398,7 @@ def render_monthly_planner():
         )
 
         if st.button("💾 บันทึกการเปลี่ยนแปลงในตารางรายจ่ายทั้งหมด", type="primary", use_container_width=True):
-            conn = get_connection()
-            c = conn.cursor()
-            
-            saved_ids = []
-            for _, r in edited_exp_data.iterrows():
-                exp_name = safe_str(r.get("name"))
-                if not exp_name:
-                    continue
-                row_id = safe_float(r.get("id"), 0)
-                if row_id > 0:
-                    c.execute("""
-                    INSERT OR REPLACE INTO expense_items (id, name, category, expense_type, estimated_amount, notes, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-                    """, (
-                        int(row_id),
-                        exp_name,
-                        safe_str(r.get("category"), EXPENSE_CATEGORIES[0] if EXPENSE_CATEGORIES else "🏠 ที่อยู่อาศัย (Housing)"),
-                        safe_str(r.get("expense_type"), EXPENSE_TYPES[0]),
-                        safe_float(r.get("estimated_amount"), 0.0),
-                        safe_str(r.get("notes"), "")
-                    ))
-                    saved_ids.append(int(row_id))
-                else:
-                    c.execute("""
-                    INSERT INTO expense_items (name, category, expense_type, estimated_amount, notes)
-                    VALUES (?, ?, ?, ?, ?)
-                    """, (
-                        exp_name,
-                        safe_str(r.get("category"), EXPENSE_CATEGORIES[0] if EXPENSE_CATEGORIES else "🏠 ที่อยู่อาศัย (Housing)"),
-                        safe_str(r.get("expense_type"), EXPENSE_TYPES[0]),
-                        safe_float(r.get("estimated_amount"), 0.0),
-                        safe_str(r.get("notes"), "")
-                    ))
-                    saved_ids.append(c.lastrowid)
-
-            if saved_ids:
-                placeholders = ','.join(['?'] * len(saved_ids))
-                c.execute(f"DELETE FROM expense_items WHERE id NOT IN ({placeholders})", saved_ids)
-            else:
-                c.execute("DELETE FROM expense_items")
-
-            conn.commit()
-            conn.close()
+            save_expense_items_batch(edited_exp_data.to_dict("records"))
             st.toast("บันทึกรายการรายจ่ายเรียบร้อยแล้ว!", icon="💾")
             st.rerun()
 
