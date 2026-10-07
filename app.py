@@ -87,6 +87,9 @@ def main():
             "📜 ประวัติ & สำรองข้อมูล (History & Backup)"
         ]
 
+        if "redirect_nav" in st.session_state and st.session_state["redirect_nav"] in MENU_OPTIONS:
+            st.session_state["nav_menu"] = st.session_state.pop("redirect_nav")
+
         if "nav_menu" not in st.session_state or st.session_state["nav_menu"] not in MENU_OPTIONS:
             st.session_state["nav_menu"] = MENU_OPTIONS[0]
 

@@ -334,20 +334,20 @@ def render_overview():
     qc1, qc2, qc3, qc4 = st.columns(4)
     with qc1:
         if st.button("📊 ประมาณการรายเดือน ➔", use_container_width=True, key="btn_nav_monthly"):
-            st.session_state["nav_menu"] = "📊 ประมาณการรายเดือน (Monthly Planner)"
+            st.session_state["redirect_nav"] = "📊 ประมาณการรายเดือน (Monthly Planner)"
             st.rerun()
 
     with qc2:
         if st.button("📈 พอร์ตการลงทุน ➔", use_container_width=True, key="btn_nav_portfolio"):
-            st.session_state["nav_menu"] = "📈 พอร์ตการลงทุน (Portfolio)"
+            st.session_state["redirect_nav"] = "📈 พอร์ตการลงทุน (Portfolio)"
             st.rerun()
 
     with qc3:
         if st.button("🏛️ ความมั่งคั่ง & FIRE ➔", use_container_width=True, key="btn_nav_fire"):
-            st.session_state["nav_menu"] = "🏛️ ความมั่งคั่ง & อิสรภาพการเงิน (Net Worth & FIRE)"
+            st.session_state["redirect_nav"] = "🏛️ ความมั่งคั่ง & อิสรภาพการเงิน (Net Worth & FIRE)"
             st.rerun()
 
     with qc4:
         if st.button("📜 ประวัติ & สำรองข้อมูล ➔", use_container_width=True, key="btn_nav_history"):
-            st.session_state["nav_menu"] = "📜 ประวัติ & สำรองข้อมูล (History & Backup)"
+            st.session_state["redirect_nav"] = "📜 ประวัติ & สำรองข้อมูล (History & Backup)"
             st.rerun()
