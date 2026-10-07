@@ -501,6 +501,7 @@ def render_monthly_planner():
                 "fire_target_monthly_spend": profile.get("fire_target_monthly_spend", 35000),
                 "fire_expected_return": profile.get("fire_expected_return", 7.0),
                 "fire_inflation_rate": profile.get("fire_inflation_rate", 2.5),
+                "fire_birth_year": profile.get("fire_birth_year", datetime.now().year - int(profile.get("fire_current_age", 29))),
                 "fire_current_age": profile.get("fire_current_age", 29),
                 "fire_target_age": profile.get("fire_target_age", 50)
             }

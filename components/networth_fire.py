@@ -3,6 +3,7 @@ Net Worth, Liabilities & FIRE (Financial Independence) Calculator Module
 Calculates total net worth, debt solvency, FIRE number (4% rule), and compounding multi-year simulations.
 """
 
+from datetime import datetime
 import streamlit as st
 import pandas as pd
 from database import (
@@ -87,9 +88,26 @@ def render_networth_fire():
 
     with st.expander("⚙️ ปรับแต่งสมมติฐานการคำนวณ FIRE", expanded=True):
         fc1, fc2, fc3 = st.columns(3)
+        curr_y = datetime.now().year
         with fc1:
-            current_age = st.number_input("อายุปัจจุบัน", min_value=15, max_value=80, value=int(profile.get("fire_current_age", 29)), step=1)
-            target_retire_age = st.number_input("อายุที่ต้องการเกษียณ/อิสรภาพการเงิน", min_value=current_age + 1, max_value=90, value=int(profile.get("fire_target_age", 50)), step=1)
+            default_birth_year = int(profile.get("fire_birth_year", curr_y - int(profile.get("fire_current_age", 29))))
+            birth_year = st.number_input(
+                "ปี ค.ศ. เกิด (Birth Year)",
+                min_value=1930,
+                max_value=curr_y - 5,
+                value=default_birth_year,
+                step=1,
+                help=f"เช่น {default_birth_year} (พ.ศ. {default_birth_year + 543}) ระบบจะคำนวณอายุให้อัตโนมัติทุกปี"
+            )
+            current_age = max(1, curr_y - int(birth_year))
+            st.caption(f"🎂 ปัจจุบันอายุ: **{current_age} ปี** (เกิด พ.ศ. {int(birth_year) + 543})")
+            target_retire_age = st.number_input(
+                "อายุที่ต้องการเกษียณ/อิสรภาพการเงิน",
+                min_value=current_age + 1,
+                max_value=100,
+                value=max(current_age + 1, int(profile.get("fire_target_age", 50))),
+                step=1
+            )
         with fc2:
             target_monthly_spend = st.number_input(
                 "ค่าใช้จ่ายที่ต้องการใช้ต่อเดือนหลังเกษียณ (บาท)",
@@ -115,6 +133,7 @@ def render_networth_fire():
                 "fire_target_monthly_spend": target_monthly_spend,
                 "fire_expected_return": expected_roi,
                 "fire_inflation_rate": inflation_rate,
+                "fire_birth_year": birth_year,
                 "fire_current_age": current_age,
                 "fire_target_age": target_retire_age,
                 "fire_monthly_dca": 0

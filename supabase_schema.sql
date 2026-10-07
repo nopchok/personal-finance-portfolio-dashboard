@@ -43,15 +43,19 @@ CREATE TABLE IF NOT EXISTS monthly_profile (
     fire_target_monthly_spend NUMERIC NOT NULL DEFAULT 35000,
     fire_expected_return NUMERIC NOT NULL DEFAULT 7.0,
     fire_inflation_rate NUMERIC NOT NULL DEFAULT 2.5,
+    fire_birth_year INTEGER NOT NULL DEFAULT 1996,
     fire_current_age INTEGER NOT NULL DEFAULT 30,
     fire_target_age INTEGER NOT NULL DEFAULT 50,
     fire_monthly_dca NUMERIC NOT NULL DEFAULT 0,
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Note: For existing databases running in Supabase, you can run this migration:
+-- ALTER TABLE monthly_profile ADD COLUMN IF NOT EXISTS fire_birth_year INTEGER NOT NULL DEFAULT 1996;
+
 -- Insert initial default monthly profile
-INSERT INTO monthly_profile (id, salary, bonus_or_other_income, passive_income, fixed_expenses, variable_expense_estimate, emergency_fund_target_months, fire_target_monthly_spend, fire_expected_return, fire_inflation_rate, fire_current_age, fire_target_age, fire_monthly_dca)
-VALUES (1, 65000, 5000, 2000, 18000, 16000, 6, 35000, 7.0, 2.5, 30, 50, 0)
+INSERT INTO monthly_profile (id, salary, bonus_or_other_income, passive_income, fixed_expenses, variable_expense_estimate, emergency_fund_target_months, fire_target_monthly_spend, fire_expected_return, fire_inflation_rate, fire_birth_year, fire_current_age, fire_target_age, fire_monthly_dca)
+VALUES (1, 65000, 5000, 2000, 18000, 16000, 6, 35000, 7.0, 2.5, 1996, 30, 50, 0)
 ON CONFLICT (id) DO NOTHING;
 
 -- 4. Itemized Income Items

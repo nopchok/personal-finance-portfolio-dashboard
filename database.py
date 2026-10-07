@@ -127,12 +127,14 @@ def init_db():
     try:
         profile = get_monthly_profile()
         if not profile:
+            curr_y = datetime.now().year
             update_monthly_profile({
                 "salary": 65000, "bonus_or_other_income": 5000, "passive_income": 2000,
                 "fixed_expenses": 18000, "variable_expense_estimate": 16000,
                 "emergency_fund_target_months": 6, "fire_target_monthly_spend": 35000,
                 "fire_expected_return": 7.0, "fire_inflation_rate": 2.5,
-                "fire_current_age": 30, "fire_target_age": 50, "fire_monthly_dca": 0
+                "fire_birth_year": 1996, "fire_current_age": curr_y - 1996,
+                "fire_target_age": 50, "fire_monthly_dca": 0
             })
     except Exception as e:
         print("init_db error:", e)
@@ -314,8 +316,17 @@ def save_liabilities_batch(items: List[Dict[str, Any]]):
 @st.cache_data(ttl=10, show_spinner=False)
 def get_monthly_profile() -> Dict[str, Any]:
     res = supabase_rest_request("GET", "monthly_profile", params={"select": "*", "id": "eq.1"})
+    curr_y = datetime.now().year
     if isinstance(res, list) and len(res) > 0:
         row = res[0]
+        birth_year_raw = row.get("fire_birth_year")
+        if birth_year_raw is not None:
+            birth_year = int(safe_float(birth_year_raw, curr_y - 29))
+            current_age = max(1, curr_y - birth_year)
+        else:
+            current_age = int(safe_float(row.get("fire_current_age"), 29))
+            birth_year = curr_y - current_age
+
         return {
             "id": 1,
             "salary": safe_float(row.get("salary"), 50000.0),
@@ -327,7 +338,8 @@ def get_monthly_profile() -> Dict[str, Any]:
             "fire_target_monthly_spend": safe_float(row.get("fire_target_monthly_spend"), 30000.0),
             "fire_expected_return": safe_float(row.get("fire_expected_return"), 7.0),
             "fire_inflation_rate": safe_float(row.get("fire_inflation_rate"), 2.5),
-            "fire_current_age": int(safe_float(row.get("fire_current_age"), 30)),
+            "fire_birth_year": birth_year,
+            "fire_current_age": current_age,
             "fire_target_age": int(safe_float(row.get("fire_target_age"), 50)),
             "fire_monthly_dca": safe_float(row.get("fire_monthly_dca"), 0.0),
         }
@@ -335,10 +347,19 @@ def get_monthly_profile() -> Dict[str, Any]:
         "id": 1, "salary": 65000.0, "bonus_or_other_income": 5000.0, "passive_income": 2000.0,
         "fixed_expenses": 18000.0, "variable_expense_estimate": 16000.0, "emergency_fund_target_months": 6,
         "fire_target_monthly_spend": 35000.0, "fire_expected_return": 7.0, "fire_inflation_rate": 2.5,
-        "fire_current_age": 30, "fire_target_age": 50, "fire_monthly_dca": 0.0
+        "fire_birth_year": 1996, "fire_current_age": curr_y - 1996, "fire_target_age": 50, "fire_monthly_dca": 0.0
     }
 
 def update_monthly_profile(data: Dict[str, Any]):
+    curr_y = datetime.now().year
+    birth_year_raw = data.get("fire_birth_year")
+    if birth_year_raw is not None:
+        birth_year = int(safe_float(birth_year_raw, 1996))
+        current_age = max(1, curr_y - birth_year)
+    else:
+        current_age = int(safe_float(data.get("fire_current_age"), 30))
+        birth_year = curr_y - current_age
+
     clean = {
         "id": 1,
         "salary": safe_float(data.get("salary"), 50000.0),
@@ -350,11 +371,16 @@ def update_monthly_profile(data: Dict[str, Any]):
         "fire_target_monthly_spend": safe_float(data.get("fire_target_monthly_spend"), 30000.0),
         "fire_expected_return": safe_float(data.get("fire_expected_return"), 7.0),
         "fire_inflation_rate": safe_float(data.get("fire_inflation_rate"), 2.5),
-        "fire_current_age": int(safe_float(data.get("fire_current_age"), 30)),
+        "fire_birth_year": birth_year,
+        "fire_current_age": current_age,
         "fire_target_age": int(safe_float(data.get("fire_target_age"), 50)),
         "fire_monthly_dca": safe_float(data.get("fire_monthly_dca"), 0.0),
     }
     res = supabase_rest_request("POST", "monthly_profile", data=clean, prefer="resolution=merge-duplicates")
+    if res is None:
+        # Fallback in case fire_birth_year column does not exist yet in Supabase schema
+        clean_fallback = {k: v for k, v in clean.items() if k != "fire_birth_year"}
+        res = supabase_rest_request("POST", "monthly_profile", data=clean_fallback, prefer="resolution=merge-duplicates")
     clear_db_cache()
     return res
 
@@ -679,12 +705,14 @@ def reset_all_data():
 
 def seed_sample_data_if_empty():
     """Seeds rich mock sample data when user explicitly requests it."""
+    curr_y = datetime.now().year
     update_monthly_profile({
         "salary": 65000, "bonus_or_other_income": 5000, "passive_income": 2000,
         "fixed_expenses": 18000, "variable_expense_estimate": 16000,
         "emergency_fund_target_months": 6, "fire_target_monthly_spend": 35000,
         "fire_expected_return": 7.0, "fire_inflation_rate": 2.5,
-        "fire_current_age": 30, "fire_target_age": 50, "fire_monthly_dca": 0
+        "fire_birth_year": 1996, "fire_current_age": curr_y - 1996,
+        "fire_target_age": 50, "fire_monthly_dca": 0
     })
     
     sample_investments = [
