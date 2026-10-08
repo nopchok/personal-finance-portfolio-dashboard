@@ -253,37 +253,37 @@ def apply_tailwind_light_theme():
     """
     st.markdown(custom_css, unsafe_allow_html=True)
 
+import textwrap
+
 def render_metric_card(title: str, value: str, subtext: str = "", badge_text: str = "", badge_type: str = "indigo"):
     badge_html = f'<span class="badge-pill badge-{badge_type}">{badge_text}</span>' if badge_text else ""
-    st.markdown(f"""
-    <div class="tailwind-card">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div class="metric-title">{title}</div>
-            {badge_html}
-        </div>
-        <div class="metric-val">{value}</div>
-        <div class="metric-sub">{subtext}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    card_html = f"""<div class="tailwind-card">
+<div style="display: flex; justify-content: space-between; align-items: center;">
+<div class="metric-title">{title}</div>
+{badge_html}
+</div>
+<div class="metric-val">{value}</div>
+<div class="metric-sub">{subtext}</div>
+</div>"""
+    st.markdown(card_html, unsafe_allow_html=True)
 
 def render_hero_banner(title: str, subtitle: str, net_worth: str, monthly_surplus: str, savings_rate: str):
-    st.markdown(f"""
-    <div class="hero-banner-light">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
-            <div>
-                <h1 style="margin: 0; font-size: 1.55rem; font-weight: 800; color: #0F172A; letter-spacing: -0.03em;">{title}</h1>
-                <p style="margin: 0.3rem 0 0 0; color: #64748B; font-size: 0.9rem;">{subtitle}</p>
-            </div>
-            <div style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
-                <div style="text-align: right; background: #FFFFFF; padding: 8px 16px; border-radius: 12px; border: 1px solid #E2E8F0; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
-                    <div style="font-size: 0.72rem; text-transform: uppercase; color: #64748B; font-weight: 700;">Net Worth (ความมั่งคั่งสุทธิ) <span style="color:#94A3B8; font-weight:400;">[สินทรัพย์ - หนี้]</span></div>
-                    <div style="font-size: 1.6rem; font-weight: 800; color: #0284C7;">{net_worth}</div>
-                </div>
-                <div style="text-align: right; background: #FFFFFF; padding: 8px 16px; border-radius: 12px; border: 1px solid #E2E8F0; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
-                    <div style="font-size: 0.72rem; text-transform: uppercase; color: #64748B; font-weight: 700;">เงินออม/ลงทุนต่อเดือน <span style="color:#94A3B8; font-weight:400;">[รายได้ - จ่าย]</span></div>
-                    <div style="font-size: 1.6rem; font-weight: 800; color: #059669;">{monthly_surplus} <span style="font-size: 0.85rem; font-weight: 600; color: #10B981;">(ออม {savings_rate})</span></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    banner_html = f"""<div class="hero-banner-light">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+<div>
+<h1 style="margin: 0; font-size: 1.55rem; font-weight: 800; color: #0F172A; letter-spacing: -0.03em;">{title}</h1>
+<p style="margin: 0.3rem 0 0 0; color: #64748B; font-size: 0.9rem;">{subtitle}</p>
+</div>
+<div style="display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap;">
+<div style="text-align: right; background: #FFFFFF; padding: 8px 16px; border-radius: 12px; border: 1px solid #E2E8F0; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+<div style="font-size: 0.72rem; text-transform: uppercase; color: #64748B; font-weight: 700;">Net Worth (ความมั่งคั่งสุทธิ) <span style="color:#94A3B8; font-weight:400;">[สินทรัพย์ - หนี้]</span></div>
+<div style="font-size: 1.6rem; font-weight: 800; color: #0284C7;">{net_worth}</div>
+</div>
+<div style="text-align: right; background: #FFFFFF; padding: 8px 16px; border-radius: 12px; border: 1px solid #E2E8F0; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+<div style="font-size: 0.72rem; text-transform: uppercase; color: #64748B; font-weight: 700;">เงินออม/ลงทุนต่อเดือน <span style="color:#94A3B8; font-weight:400;">[รายได้ - จ่าย]</span></div>
+<div style="font-size: 1.6rem; font-weight: 800; color: #059669;">{monthly_surplus} <span style="font-size: 0.85rem; font-weight: 600; color: #10B981;">(ออม {savings_rate})</span></div>
+</div>
+</div>
+</div>
+</div>"""
+    st.markdown(banner_html, unsafe_allow_html=True)

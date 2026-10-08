@@ -1,19 +1,20 @@
 """
 Minimal Light Personal Finance & Portfolio Dashboard
-Built with Streamlit, Tailwind Aesthetics, Plotly, Supabase
+Built with Streamlit, Tailwind Aesthetics, Plotly, Supabase & Multi-User Isolation
 """
 
 import streamlit as st
 import pandas as pd
 from datetime import datetime
 
-# Initialize Database
+# Initialize Database & Authentication
 from database import (
-    init_db, clear_db_cache,
+    init_db, clear_db_cache, get_current_user,
     get_monthly_profile, get_all_assets, get_all_liabilities, 
     get_all_income_items, get_all_expense_items
 )
 from components.styles import apply_tailwind_light_theme, render_hero_banner
+from components.auth import render_auth_page, render_sidebar_user_profile
 from components.overview import render_overview
 from components.monthly_planner import render_monthly_planner
 from components.portfolio import render_portfolio
@@ -35,6 +36,18 @@ init_db()
 apply_tailwind_light_theme()
 
 def main():
+    current_user = get_current_user()
+
+    # -------------------------------------------------------------
+    # AUTHENTICATION GATE: Require Login if not authenticated
+    # -------------------------------------------------------------
+    if not current_user:
+        render_auth_page()
+        return
+
+    # User is authenticated
+    display_name = current_user.get("display_name", "ผู้ใช้งาน")
+
     # Fetch high-level numbers for hero banner
     profile = get_monthly_profile()
     assets = get_all_assets()
@@ -62,17 +75,18 @@ def main():
 
     # Sidebar Navigation & Quick Info
     with st.sidebar:
-        st.markdown("""
-        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
-            <div style="background: #EEF2FF; width: 42px; height: 42px; border-radius: 10px; border: 1px solid #C7D2FE; display: flex; align-items: center; justify-content: center; font-size: 1.35rem;">
-                💼
-            </div>
-            <div>
-                <div style="font-weight: 800; font-size: 1.1rem; color: #0F172A; letter-spacing: -0.02em;">MINIMAL FINANCE</div>
-                <div style="font-size: 0.75rem; color: #64748B;">Personal Wealth Dashboard</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("""<div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+<div style="background: #EEF2FF; width: 42px; height: 42px; border-radius: 10px; border: 1px solid #C7D2FE; display: flex; align-items: center; justify-content: center; font-size: 1.35rem;">
+💼
+</div>
+<div>
+<div style="font-weight: 800; font-size: 1.1rem; color: #0F172A; letter-spacing: -0.02em;">MINIMAL FINANCE</div>
+<div style="font-size: 0.75rem; color: #64748B;">Personal Wealth Dashboard</div>
+</div>
+</div>""", unsafe_allow_html=True)
+
+        # Logged-in User Profile Card & Sign Out
+        render_sidebar_user_profile()
 
         current_date_str = datetime.now().strftime("%B %Y")
         st.caption(f"🗓️ รอบเดือนปัจจุบัน: **{current_date_str}**")
@@ -106,19 +120,17 @@ def main():
             st.rerun()
         
         # Sidebar mini-summary card
-        st.markdown("""
-        <div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px;">
-            <div style="font-size: 0.75rem; text-transform: uppercase; color: #4F46E5; font-weight: 700;">💡 Minimalist Approach</div>
-            <div style="font-size: 0.8rem; color: #475569; margin-top: 4px; line-height: 1.45;">
-                วางแผนรายเดือนแบบ <b>Estimate ภาพรวม</b> ไม่ต้องเสียเวลากรอกรายจ่ายรายวัน เน้นจัดสรร Asset Allocation และสะสมความมั่งคั่งสู่อิสรภาพทางการเงิน
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown("""<div style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 10px; padding: 12px; margin-top: 0.5rem;">
+<div style="font-size: 0.75rem; text-transform: uppercase; color: #4F46E5; font-weight: 700;">💡 Minimalist Approach</div>
+<div style="font-size: 0.8rem; color: #475569; margin-top: 4px; line-height: 1.45;">
+วางแผนรายเดือนแบบ <b>Estimate ภาพรวม</b> แยกข้อมูลส่วนบุคคลปลอดภัย เน้นจัดสรร Asset Allocation และสะสมความมั่งคั่งสู่อิสรภาพทางการเงิน
+</div>
+</div>""", unsafe_allow_html=True)
 
     # Top Hero Banner
     render_hero_banner(
-        title="แดชบอร์ดสถานะการเงิน & พอร์ตการลงทุน",
-        subtitle="ระบบบริหารจัดการเงินออม ลงทุน และประมาณการความมั่งคั่ง",
+        title=f"แดชบอร์ดสถานะการเงิน — คุณ{display_name}",
+        subtitle="ระบบบริหารจัดการเงินออม ลงทุน และประมาณการความมั่งคั่งส่วนบุคคล",
         net_worth=f"฿{net_worth:,.0f}",
         monthly_surplus=f"฿{monthly_surplus:,.0f}",
         savings_rate=f"{savings_rate_str}"

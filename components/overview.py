@@ -191,27 +191,25 @@ def render_overview():
     st.caption("แดชบอร์ดสรุปสถานะการเงินทุกมิติแบบองค์รวม ประเมินคะแนนสุขภาพ วิเคราะห์จุดแข็ง และแนวทางบริหารจัดการ")
 
     # Top Health Score Banner
-    st.markdown(f"""
-    <div style="background: linear-gradient(135deg, #1E1B4B 0%, #312E81 50%, #4338CA 100%); border-radius: 16px; padding: 1.5rem 1.75rem; color: #FFFFFF; margin-bottom: 1.5rem; box-shadow: 0 10px 25px -5px rgba(67, 56, 202, 0.25);">
-        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
-            <div>
-                <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #A5B4FC; margin-bottom: 0.25rem;">
-                    🩺 FINANCIAL HEALTH CHECKUP SCORE
-                </div>
-                <div style="font-size: 1.85rem; font-weight: 800; letter-spacing: -0.02em; color: #FFFFFF;">
-                    เกรด {grade}
-                </div>
-                <div style="font-size: 0.9rem; color: #E0E7FF; margin-top: 0.35rem; max-width: 680px; line-height: 1.45;">
-                    {grade_desc}
-                </div>
-            </div>
-            <div style="background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 14px; padding: 0.75rem 1.5rem; text-align: center; min-width: 140px;">
-                <div style="font-size: 0.75rem; color: #C7D2FE; font-weight: 600;">คะแนนสุขภาพรวม</div>
-                <div style="font-size: 2.3rem; font-weight: 900; color: #34D399; line-height: 1.1;">{score}<span style="font-size: 1.1rem; color: #A7F3D0;">/100</span></div>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(f"""<div style="background: linear-gradient(135deg, #1E1B4B 0%, #312E81 50%, #4338CA 100%); border-radius: 16px; padding: 1.5rem 1.75rem; color: #FFFFFF; margin-bottom: 1.5rem; box-shadow: 0 10px 25px -5px rgba(67, 56, 202, 0.25);">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem;">
+<div>
+<div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #A5B4FC; margin-bottom: 0.25rem;">
+🩺 FINANCIAL HEALTH CHECKUP SCORE
+</div>
+<div style="font-size: 1.85rem; font-weight: 800; letter-spacing: -0.02em; color: #FFFFFF;">
+เกรด {grade}
+</div>
+<div style="font-size: 0.9rem; color: #E0E7FF; margin-top: 0.35rem; max-width: 680px; line-height: 1.45;">
+{grade_desc}
+</div>
+</div>
+<div style="background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 14px; padding: 0.75rem 1.5rem; text-align: center; min-width: 140px;">
+<div style="font-size: 0.75rem; color: #C7D2FE; font-weight: 600;">คะแนนสุขภาพรวม</div>
+<div style="font-size: 2.3rem; font-weight: 900; color: #34D399; line-height: 1.1;">{score}<span style="font-size: 1.1rem; color: #A7F3D0;">/100</span></div>
+</div>
+</div>
+</div>""", unsafe_allow_html=True)
 
     # 4 Key Dimension Cards
     c1, c2, c3, c4 = st.columns(4)
@@ -284,31 +282,25 @@ def render_overview():
         st.markdown("##### 📌 เกณฑ์มาตรฐานสุขภาพการเงิน 4 มิติ")
         
         # 1. Savings Rate
-        st.markdown(f"""
-        <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:2px;">
-            <span>💰 <b>อัตราการออม (Savings Rate)</b></span>
-            <span><b>{savings_rate:.1f}%</b> (เกณฑ์แนะนำ: > 20%)</span>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"""<div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:2px;">
+<span>💰 <b>อัตราการออม (Savings Rate)</b></span>
+<span><b>{savings_rate:.1f}%</b> (เกณฑ์แนะนำ: > 20%)</span>
+</div>""", unsafe_allow_html=True)
         st.progress(min(1.0, max(0.0, savings_rate / 40.0)))
 
         # 2. Emergency Buffer
-        st.markdown(f"""
-        <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-top:8px; margin-bottom:2px;">
-            <span>🛡️ <b>เงินสำรองฉุกเฉิน (Emergency Buffer)</b></span>
-            <span><b>{emergency_months:.1f} เดือน</b> (เป้าหมาย: {target_emergency_months} เดือน)</span>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"""<div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-top:8px; margin-bottom:2px;">
+<span>🛡️ <b>เงินสำรองฉุกเฉิน (Emergency Buffer)</b></span>
+<span><b>{emergency_months:.1f} เดือน</b> (เป้าหมาย: {target_emergency_months} เดือน)</span>
+</div>""", unsafe_allow_html=True)
         st.progress(min(1.0, max(0.0, emergency_months / max(1, target_emergency_months))))
 
         # 3. Debt-to-Income
         dti_health = max(0.0, 1.0 - (dti_ratio / 50.0))
-        st.markdown(f"""
-        <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-top:8px; margin-bottom:2px;">
-            <span>💳 <b>ความปลอดภัยด้านหนี้สิน (DTI Safety)</b></span>
-            <span>ภาระผ่อน <b>{dti_ratio:.1f}%</b> ของรายได้ (เกณฑ์ปลอดภัย: < 30%)</span>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(f"""<div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-top:8px; margin-bottom:2px;">
+<span>💳 <b>ความปลอดภัยด้านหนี้สิน (DTI Safety)</b></span>
+<span>ภาระผ่อน <b>{dti_ratio:.1f}%</b> ของรายได้ (เกณฑ์ปลอดภัย: < 30%)</span>
+</div>""", unsafe_allow_html=True)
         st.progress(min(1.0, dti_health))
 
     with col_diagnosis:

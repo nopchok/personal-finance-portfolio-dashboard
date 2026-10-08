@@ -147,13 +147,11 @@ def render_portfolio():
                             status = f"➖ เกินเป้าหมาย ฿{abs(diff):,.0f}"
                             status_color = "#F59E0B"
                         
-                        st.markdown(f"""
-                        <div style="background: #FFFFFF; border: 1px solid #E2E8F0; padding: 10px 14px; border-radius: 10px; border-left: 4px solid {status_color}; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
-                            <div style="font-weight: 700; font-size: 0.85rem; color: #0F172A;">{row['category']}</div>
-                            <div style="font-size: 0.78rem; color: #64748B;">ปัจจุบัน {row['actual_pct']:.1f}% | เป้าหมาย {row['target_pct']:.1f}%</div>
-                            <div style="font-size: 0.82rem; font-weight: 700; color: {status_color}; margin-top: 4px;">{status}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
+                        st.markdown(f"""<div style="background: #FFFFFF; border: 1px solid #E2E8F0; padding: 10px 14px; border-radius: 10px; border-left: 4px solid {status_color}; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.04);">
+<div style="font-weight: 700; font-size: 0.85rem; color: #0F172A;">{row['category']}</div>
+<div style="font-size: 0.78rem; color: #64748B;">ปัจจุบัน {row['actual_pct']:.1f}% | เป้าหมาย {row['target_pct']:.1f}%</div>
+<div style="font-size: 0.82rem; font-weight: 700; color: {status_color}; margin-top: 4px;">{status}</div>
+</div>""", unsafe_allow_html=True)
 
         # Educational Expander for Portfolio
         with st.expander("📖 คำอธิบาย: สัดส่วนเป้าหมาย (Target %) & การปรับสมดุลพอร์ต (Rebalancing)", expanded=False):

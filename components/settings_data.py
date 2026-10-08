@@ -85,11 +85,9 @@ def render_settings_data():
             for cat_name in current_cats:
                 c_pill1, c_pill2 = st.columns([4, 1])
                 with c_pill1:
-                    st.markdown(f"""
-                    <div style="background: #FFFFFF; border: 1px solid #E2E8F0; padding: 7px 12px; border-radius: 8px; margin-bottom: 6px; font-weight: 600; color: #0F172A; font-size: 0.9rem;">
-                        {cat_name}
-                    </div>
-                    """, unsafe_allow_html=True)
+                    st.markdown(f"""<div style="background: #FFFFFF; border: 1px solid #E2E8F0; padding: 7px 12px; border-radius: 8px; margin-bottom: 6px; font-weight: 600; color: #0F172A; font-size: 0.9rem;">
+{cat_name}
+</div>""", unsafe_allow_html=True)
                 with c_pill2:
                     if st.button("🗑️ ลบ", key=f"del_cat_{selected_cat_type}_{cat_name}", help=f"ลบหมวดหมู่ {cat_name}"):
                         delete_category(selected_cat_type, cat_name)

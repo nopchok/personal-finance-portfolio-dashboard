@@ -124,11 +124,11 @@ def render_networth_fire():
 
         if st.button("💾 อัปเดตสมมติฐาน FIRE ลงโปรไฟล์", type="secondary"):
             update_data = {
-                "salary": profile.get("salary", 50000),
+                "salary": profile.get("salary", 0),
                 "bonus_or_other_income": profile.get("bonus_or_other_income", 0),
                 "passive_income": profile.get("passive_income", 0),
-                "fixed_expenses": profile.get("fixed_expenses", 15000),
-                "variable_expense_estimate": profile.get("variable_expense_estimate", 15000),
+                "fixed_expenses": profile.get("fixed_expenses", 0),
+                "variable_expense_estimate": profile.get("variable_expense_estimate", 0),
                 "emergency_fund_target_months": profile.get("emergency_fund_target_months", 6),
                 "fire_target_monthly_spend": target_monthly_spend,
                 "fire_expected_return": expected_roi,

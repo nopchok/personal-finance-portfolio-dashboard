@@ -67,8 +67,8 @@ def render_monthly_planner():
         passive_income = inc_df[inc_df["income_type"].str.contains("ผันแปร|เสริม|Passive|Variable", na=False)]["estimated_amount"].sum()
         total_income = active_income + passive_income
     else:
-        active_income = float(profile.get("salary", 65000))
-        passive_income = float(profile.get("bonus_or_other_income", 5000)) + float(profile.get("passive_income", 2000))
+        active_income = float(profile.get("salary", 0))
+        passive_income = float(profile.get("bonus_or_other_income", 0)) + float(profile.get("passive_income", 0))
         total_income = active_income + passive_income
 
     # Expense calculations
@@ -77,8 +77,8 @@ def render_monthly_planner():
         variable_sum = exp_df[exp_df["expense_type"].str.contains("ผันแปร|Variable", na=False)]["estimated_amount"].sum()
         total_expenses = fixed_sum + variable_sum
     else:
-        fixed_sum = float(profile.get("fixed_expenses", 18000))
-        variable_sum = float(profile.get("variable_expense_estimate", 16000))
+        fixed_sum = float(profile.get("fixed_expenses", 0))
+        variable_sum = float(profile.get("variable_expense_estimate", 0))
         total_expenses = fixed_sum + variable_sum
 
     monthly_surplus = total_income - total_expenses
@@ -498,7 +498,7 @@ def render_monthly_planner():
                 "fixed_expenses": fixed_sum,
                 "variable_expense_estimate": variable_sum,
                 "emergency_fund_target_months": new_ef_target,
-                "fire_target_monthly_spend": profile.get("fire_target_monthly_spend", 35000),
+                "fire_target_monthly_spend": profile.get("fire_target_monthly_spend", 0),
                 "fire_expected_return": profile.get("fire_expected_return", 7.0),
                 "fire_inflation_rate": profile.get("fire_inflation_rate", 2.5),
                 "fire_birth_year": profile.get("fire_birth_year", datetime.now().year - int(profile.get("fire_current_age", 29))),
