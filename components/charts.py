@@ -322,19 +322,32 @@ def create_budget_rule_gauge(income: float, fixed_exp: float, var_exp: float, sa
     )
     return fig
 
-def create_fire_projection_chart(current_nw: float, monthly_invest: float, years: int = 25, expected_return: float = 7.0, fire_target: float = 10000000):
+def create_fire_projection_chart(current_nw: float, monthly_invest: float, years: int = 25, expected_return: float = 7.0, fire_target: float = 10000000, current_age: int = 30, future_cashflows: List[Dict[str, Any]] = None):
     months = years * 12
     x_years = [i / 12 for i in range(months + 1)]
     
+    # Map future lump-sums into monthly index
+    lump_sums_by_month = {}
+    if future_cashflows:
+        for cf in future_cashflows:
+            flow_type = cf.get("flow_type", "")
+            if "เงินก้อน" in flow_type or "Lump" in flow_type:
+                s_age = int(cf.get("start_age", 60))
+                diff_years = s_age - current_age
+                if diff_years >= 0:
+                    m_idx = diff_years * 12
+                    lump_sums_by_month[m_idx] = lump_sums_by_month.get(m_idx, 0) + float(cf.get("amount", 0))
+
     def calc_future_values(annual_rate):
         r = annual_rate / 100 / 12
         values = []
+        cur = current_nw
         for m in range(months + 1):
-            if r == 0:
-                fv = current_nw + (monthly_invest * m)
-            else:
-                fv = current_nw * ((1 + r) ** m) + monthly_invest * (((1 + r) ** m - 1) / r)
-            values.append(fv)
+            if m > 0:
+                cur = cur * (1 + r) + monthly_invest
+                if m in lump_sums_by_month:
+                    cur += lump_sums_by_month[m]
+            values.append(cur)
         return values
 
     val_cons = calc_future_values(max(1.0, expected_return - 2.5))
@@ -358,7 +371,7 @@ def create_fire_projection_chart(current_nw: float, monthly_invest: float, years
         x=x_years,
         y=val_mod,
         mode="lines",
-        name=f"คาดการณ์หลัก ({expected_return:.1f}%)",
+        name=f"คาดการณ์หลัก ({expected_return:.1f}%)" + (" (รวมเงินคืนประกัน)" if lump_sums_by_month else ""),
         line=dict(color="#4F46E5", width=3),
         fill="tozeroy",
         fillcolor="rgba(79, 70, 229, 0.08)",
@@ -411,6 +424,80 @@ def create_fire_projection_chart(current_nw: float, monthly_invest: float, years
             font=dict(size=11, color="#64748B")
         ),
         height=380
+    )
+    return fig
+
+def create_future_cashflow_timeline_chart(cashflows: List[Dict[str, Any]], current_age: int = 30, max_age: int = 85):
+    if not cashflows:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="ยังไม่มีข้อมูลแผนเงินคืน/บำนาญในอนาคต (เพิ่มรายการได้ที่ฟอร์มด้านล่าง)",
+            showarrow=False,
+            font=dict(size=13, color="#94A3B8")
+        )
+        fig.update_layout(**CHART_LAYOUT_BASE, height=320)
+        return fig
+
+    start_age_view = current_age
+    max_in_data = max([int(c.get("end_age", 60)) for c in cashflows] + [max_age])
+    end_age_view = min(90, max(max_age, max_in_data + 1))
+    ages = list(range(start_age_view, end_age_view + 1))
+    
+    fig = go.Figure()
+    
+    for idx, cf in enumerate(cashflows):
+        color = PALETTE[idx % len(PALETTE)]
+        flow_type = cf.get("flow_type", "เงินก้อนครั้งเดียว (Lump Sum)")
+        s_age = int(cf.get("start_age", 60))
+        e_age = int(cf.get("end_age", 60))
+        amt = float(cf.get("amount", 0))
+        
+        yearly_values = []
+        for age in ages:
+            if "เงินก้อน" in flow_type or "Lump" in flow_type:
+                yearly_values.append(amt if age == s_age else 0)
+            else:
+                yearly_values.append(amt if (s_age <= age <= e_age) else 0)
+                
+        if sum(yearly_values) > 0:
+            fig.add_trace(go.Bar(
+                name=f"{cf['name']}",
+                x=[f"อายุ {a}" for a in ages],
+                y=yearly_values,
+                marker_color=color,
+                hovertemplate="<b>%{data.name}</b><br>%{x}<br>กระแสเงินสดรับ: ฿%{y:,.0f}<extra></extra>"
+            ))
+
+    fig.update_layout(
+        **CHART_LAYOUT_BASE,
+        title=dict(
+            text="📊 ไทม์ไลน์กระแสเงินสดรับในอนาคตตามช่วงอายุ (Future Guaranteed Inflows by Age)",
+            font=dict(color="#0F172A", size=14, weight=700),
+            x=0.02
+        ),
+        barmode="stack",
+        xaxis=dict(
+            showgrid=False,
+            color="#64748B",
+            tickangle=-45,
+            tickfont=dict(size=10)
+        ),
+        yaxis=dict(
+            title="จำนวนเงินที่ได้รับต่อปี (บาท)",
+            showgrid=True,
+            gridcolor="#F1F5F9",
+            color="#64748B",
+            tickprefix="฿"
+        ),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(size=11, color="#64748B")
+        ),
+        height=360
     )
     return fig
 

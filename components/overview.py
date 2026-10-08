@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 from typing import Dict, List, Any
 from database import (
     get_monthly_profile, get_all_assets, get_all_liabilities,
-    get_all_income_items, get_all_expense_items, safe_float
+    get_all_income_items, get_all_expense_items, get_all_future_cashflows, safe_float
 )
 from components.styles import render_metric_card
 from components.charts import CHART_LAYOUT_BASE
@@ -23,6 +23,7 @@ def render_overview():
     liabilities = get_all_liabilities()
     income_items = get_all_income_items()
     expense_items = get_all_expense_items()
+    future_cfs = get_all_future_cashflows()
 
     curr_y = datetime.now().year
 
@@ -79,8 +80,22 @@ def render_overview():
     expected_roi = float(profile.get("fire_expected_return", 7.0))
     inflation_rate = float(profile.get("fire_inflation_rate", 2.5))
 
-    # 4% Rule calculations
-    fire_target_today = fire_spend_today * 12 * 25
+    # Guaranteed Future Inflows from Insurance & Pensions
+    total_lump_sums = sum(
+        float(c.get("amount", 0)) for c in future_cfs
+        if "เงินก้อน" in c.get("flow_type", "") or "Lump" in c.get("flow_type", "")
+    )
+    active_pension_annual = sum(
+        float(c.get("amount", 0)) for c in future_cfs
+        if ("บำนาญ" in c.get("flow_type", "") or "Pension" in c.get("flow_type", "") or "Annuity" in c.get("flow_type", ""))
+        and (int(c.get("start_age", 60)) <= target_retire_age <= int(c.get("end_age", 85)))
+    )
+    active_pension_monthly = active_pension_annual / 12
+
+    # 4% Rule calculations with Insurance Adjustment
+    raw_fire_target_today = fire_spend_today * 12 * 25
+    net_monthly_spend = max(0.0, fire_spend_today - active_pension_monthly)
+    fire_target_today = max(0.0, (net_monthly_spend * 12 * 25) - total_lump_sums)
     inflation_factor = ((1 + inflation_rate / 100) ** years_to_retire)
     fire_target_future = fire_target_today * inflation_factor
     future_monthly_spend = fire_spend_today * inflation_factor

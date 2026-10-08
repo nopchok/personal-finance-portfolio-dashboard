@@ -18,7 +18,8 @@ CAT_TYPE_MAP = {
     "รายจ่าย (Expense)": "expense",
     "พอร์ตการลงทุนสภาพคล่อง (Liquid Investment Asset)": "asset",
     "สินทรัพย์ถาวร & อสังหาริมทรัพย์ (Real Estate & Fixed Asset)": "fixed_asset",
-    "หนี้สิน (Liability)": "liability"
+    "หนี้สิน (Liability)": "liability",
+    "แผนเงินคืน & บำนาญอนาคต (Guaranteed Future Cash Flows)": "future_cashflow"
 }
 
 def render_settings_data():

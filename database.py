@@ -458,6 +458,127 @@ def save_liabilities_batch(items: List[Dict[str, Any]], user_id: Optional[int] =
     clear_db_cache()
 
 # =========================================================================
+# FUTURE CASH FLOWS & INSURANCE ANNUITY CRUD (Supabase with Cache & User Isolation)
+# =========================================================================
+@st.cache_data(ttl=10, show_spinner=False)
+def _fetch_future_cashflows(user_id: int) -> List[Dict[str, Any]]:
+    params = {
+        "select": "*",
+        "user_id": f"eq.{user_id}",
+        "order": "start_age.asc,amount.desc"
+    }
+    res = supabase_rest_request("GET", "future_cashflows", params=params)
+    if isinstance(res, list):
+        for r in res:
+            r["amount"] = safe_float(r.get("amount"), 0.0)
+            r["start_age"] = int(safe_float(r.get("start_age"), 60))
+            r["end_age"] = int(safe_float(r.get("end_age"), 60))
+        return res
+    # Fallback to session state if table does not exist or network error
+    if "local_future_cashflows" in st.session_state:
+        return [c for c in st.session_state["local_future_cashflows"] if c.get("user_id") == user_id]
+    return []
+
+def get_all_future_cashflows(user_id: Optional[int] = None) -> List[Dict[str, Any]]:
+    uid = user_id if user_id is not None else get_current_user_id()
+    return _fetch_future_cashflows(uid)
+
+def add_future_cashflow(data: Dict[str, Any], user_id: Optional[int] = None):
+    uid = user_id if user_id is not None else get_current_user_id()
+    clean = {
+        "user_id": uid,
+        "name": safe_str(data.get("name")),
+        "category": safe_str(data.get("category"), "🛡️ ประกันสะสมทรัพย์ (Endowment Maturity)"),
+        "flow_type": safe_str(data.get("flow_type"), "เงินก้อนครั้งเดียว (Lump Sum)"),
+        "amount": safe_float(data.get("amount"), 0.0),
+        "start_age": int(safe_float(data.get("start_age"), 60)),
+        "end_age": int(safe_float(data.get("end_age"), 60)),
+        "notes": safe_str(data.get("notes"), "")
+    }
+    res = supabase_rest_request("POST", "future_cashflows", data=clean, prefer="return=representation")
+    if not res:
+        if "local_future_cashflows" not in st.session_state:
+            st.session_state["local_future_cashflows"] = []
+        clean["id"] = len(st.session_state["local_future_cashflows"]) + 1001
+        st.session_state["local_future_cashflows"].append(clean)
+    clear_db_cache()
+    return res
+
+def update_future_cashflow(cashflow_id: int, data: Dict[str, Any], user_id: Optional[int] = None):
+    uid = user_id if user_id is not None else get_current_user_id()
+    clean = {
+        "user_id": uid,
+        "name": safe_str(data.get("name")),
+        "category": safe_str(data.get("category"), "🛡️ ประกันสะสมทรัพย์ (Endowment Maturity)"),
+        "flow_type": safe_str(data.get("flow_type"), "เงินก้อนครั้งเดียว (Lump Sum)"),
+        "amount": safe_float(data.get("amount"), 0.0),
+        "start_age": int(safe_float(data.get("start_age"), 60)),
+        "end_age": int(safe_float(data.get("end_age"), 60)),
+        "notes": safe_str(data.get("notes"), "")
+    }
+    res = supabase_rest_request("PATCH", "future_cashflows", data=clean, params={"id": f"eq.{cashflow_id}", "user_id": f"eq.{uid}"})
+    if not res and "local_future_cashflows" in st.session_state:
+        for idx, item in enumerate(st.session_state["local_future_cashflows"]):
+            if item.get("id") == cashflow_id and item.get("user_id") == uid:
+                clean["id"] = cashflow_id
+                st.session_state["local_future_cashflows"][idx] = clean
+    clear_db_cache()
+    return res
+
+def delete_future_cashflow(cashflow_id: int, user_id: Optional[int] = None):
+    uid = user_id if user_id is not None else get_current_user_id()
+    res = supabase_rest_request("DELETE", "future_cashflows", params={"id": f"eq.{cashflow_id}", "user_id": f"eq.{uid}"})
+    if "local_future_cashflows" in st.session_state:
+        st.session_state["local_future_cashflows"] = [
+            c for c in st.session_state["local_future_cashflows"]
+            if not (c.get("id") == cashflow_id and c.get("user_id") == uid)
+        ]
+    clear_db_cache()
+    return res
+
+def save_future_cashflows_batch(items: List[Dict[str, Any]], user_id: Optional[int] = None):
+    uid = user_id if user_id is not None else get_current_user_id()
+    current_all = get_all_future_cashflows(user_id=uid)
+    current_ids = [c["id"] for c in current_all]
+    saved_ids = []
+
+    for r in items:
+        name = safe_str(r.get("name"))
+        if not name:
+            continue
+        row_id = safe_float(r.get("id"), 0)
+        item_data = {
+            "user_id": uid,
+            "name": name,
+            "category": safe_str(r.get("category"), "🛡️ ประกันสะสมทรัพย์ (Endowment Maturity)"),
+            "flow_type": safe_str(r.get("flow_type"), "เงินก้อนครั้งเดียว (Lump Sum)"),
+            "amount": safe_float(r.get("amount"), 0.0),
+            "start_age": int(safe_float(r.get("start_age"), 60)),
+            "end_age": int(safe_float(r.get("end_age"), 60)),
+            "notes": safe_str(r.get("notes"), "")
+        }
+        if row_id > 0:
+            supabase_rest_request("PATCH", "future_cashflows", data=item_data, params={"id": f"eq.{int(row_id)}", "user_id": f"eq.{uid}"})
+            saved_ids.append(int(row_id))
+        else:
+            created = supabase_rest_request("POST", "future_cashflows", data=item_data, prefer="return=representation")
+            if isinstance(created, list) and created:
+                saved_ids.append(created[0].get("id"))
+            else:
+                if "local_future_cashflows" not in st.session_state:
+                    st.session_state["local_future_cashflows"] = []
+                fake_id = len(st.session_state["local_future_cashflows"]) + 1001
+                item_data["id"] = fake_id
+                st.session_state["local_future_cashflows"].append(item_data)
+                saved_ids.append(fake_id)
+
+    to_delete = [cid for cid in current_ids if cid not in saved_ids]
+    for del_id in to_delete:
+        delete_future_cashflow(del_id, user_id=uid)
+    
+    clear_db_cache()
+
+# =========================================================================
 # MONTHLY PROFILE (Supabase with Cache & User Isolation)
 # =========================================================================
 @st.cache_data(ttl=10, show_spinner=False)
@@ -766,6 +887,13 @@ DEFAULT_CATEGORIES_DICT = {
         "บัตรเครดิต/สินเชื่อบุคคล (Credit Card / Personal)",
         "กู้ยืมเพื่อการศึกษา (Student Loan)",
         "หนี้สินอื่นๆ (Other Debts)"
+    ],
+    "future_cashflow": [
+        "🛡️ ประกันสะสมทรัพย์ (Endowment Maturity)",
+        "👴 ประกันบำนาญ (Annuity Stream)",
+        "🏛️ กบข. / สำรองเลี้ยงชีพ (PVD / GPF)",
+        "👵 บำนาญชราภาพประกันสังคม (Social Security)",
+        "🪙 มรดก / เงินก้อนอนาคตอื่นๆ (Other Lump Sum)"
     ]
 }
 
@@ -873,7 +1001,7 @@ def delete_snapshot(snapshot_month: str, user_id: Optional[int] = None):
 def export_all_data(user_id: Optional[int] = None) -> str:
     uid = user_id if user_id is not None else get_current_user_id()
     data = {
-        "version": "3.0_multi_user",
+        "version": "3.1_multi_user_future_cf",
         "user_id": uid,
         "exported_at": datetime.now().isoformat(),
         "profile": get_monthly_profile(user_id=uid),
@@ -881,6 +1009,7 @@ def export_all_data(user_id: Optional[int] = None) -> str:
         "liabilities": get_all_liabilities(user_id=uid),
         "income_items": get_all_income_items(user_id=uid),
         "expense_items": get_all_expense_items(user_id=uid),
+        "future_cashflows": get_all_future_cashflows(user_id=uid),
         "snapshots": get_all_snapshots(user_id=uid)
     }
     return json.dumps(data, ensure_ascii=False, indent=2)
@@ -910,6 +1039,10 @@ def import_all_data(json_str: str, user_id: Optional[int] = None) -> bool:
             for e in data["expense_items"]:
                 add_expense_item(e, user_id=uid)
 
+        if "future_cashflows" in data:
+            for f in data["future_cashflows"]:
+                add_future_cashflow(f, user_id=uid)
+
         if "snapshots" in data:
             for s in data["snapshots"]:
                 save_snapshot(s, user_id=uid)
@@ -926,8 +1059,13 @@ def reset_all_data(user_id: Optional[int] = None):
     supabase_rest_request("DELETE", "liabilities", params={"user_id": f"eq.{uid}"})
     supabase_rest_request("DELETE", "income_items", params={"user_id": f"eq.{uid}"})
     supabase_rest_request("DELETE", "expense_items", params={"user_id": f"eq.{uid}"})
+    supabase_rest_request("DELETE", "future_cashflows", params={"user_id": f"eq.{uid}"})
     supabase_rest_request("DELETE", "monthly_snapshots", params={"user_id": f"eq.{uid}"})
     supabase_rest_request("DELETE", "custom_categories", params={"user_id": f"eq.{uid}"})
+    if "local_future_cashflows" in st.session_state:
+        st.session_state["local_future_cashflows"] = [
+            c for c in st.session_state["local_future_cashflows"] if c.get("user_id") != uid
+        ]
     clear_db_cache()
 
 def seed_sample_data_if_empty(user_id: Optional[int] = None):
@@ -983,5 +1121,14 @@ def seed_sample_data_if_empty(user_id: Optional[int] = None):
     ]
     for exp in sample_expenses:
         add_expense_item(exp, user_id=uid)
+
+    sample_future_cfs = [
+        {"name": "ประกันสะสมทรัพย์ครบสัญญา (Endowment)", "category": "🛡️ ประกันสะสมทรัพย์ (Endowment Maturity)", "flow_type": "เงินก้อนครั้งเดียว (Lump Sum)", "amount": 600000, "start_age": 55, "end_age": 55, "notes": "เงินคืนครบ 20 ปี กรมธรรม์ AIA"},
+        {"name": "ประกันบำนาญหลังเกษียณ (Annuity 60-85)", "category": "👴 ประกันบำนาญ (Annuity Stream)", "flow_type": "บำนาญรายปี (Annual Pension)", "amount": 72000, "start_age": 60, "end_age": 85, "notes": "จ่ายปีละ 72,000 บาท (เดือนละ 6,000 บ.)"},
+        {"name": "เงินบำนาญชราภาพประกันสังคม", "category": "👵 บำนาญชราภาพประกันสังคม (Social Security)", "flow_type": "บำนาญรายปี (Annual Pension)", "amount": 60000, "start_age": 60, "end_age": 85, "notes": "ประมาณการเดือนละ 5,000 บาท"}
+    ]
+    for f in sample_future_cfs:
+        add_future_cashflow(f, user_id=uid)
     
     clear_db_cache()
+
